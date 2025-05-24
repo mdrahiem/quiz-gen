@@ -59,10 +59,7 @@ function App() {
                   </p>
                 </div>
                 <div className="card-content">
-                  <button
-                    onClick={handleGenerateQuestion}
-                    disabled={isLoading}
-                  >
+                  <button onClick={handleGenerateQuestion} disabled={isLoading}>
                     {isLoading ? (
                       <span className="loading">
                         <RefreshCw size={20} />
@@ -115,10 +112,7 @@ function App() {
                   )}
                 </div>
                 <div className="card-footer">
-                  <button
-                    onClick={handleGenerateQuestion}
-                    disabled={isLoading}
-                  >
+                  <button onClick={handleGenerateQuestion} disabled={isLoading}>
                     {isLoading ? (
                       <span className="loading">
                         <RefreshCw size={20} />
