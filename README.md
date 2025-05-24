@@ -1,12 +1,13 @@
 # Quiz Card Generator
 
-A React application that converts content from Word or PDF documents into quiz flashcards, with the ability to download cards as images.
+A React application that converts content from Word or PDF documents into quiz flashcards with AI-powered multiple-choice questions, allowing users to download cards as images.
 
 ## Features
 
-- Upload Word (.docx) documents
-- Automatically generate quiz questions from document content
-- Browse through flashcards with question and answer sides
+- Upload Word (.docx) or PDF documents
+- Generate multiple-choice quiz questions from document content
+- AI-powered question generation using Perplexity Sonar API
+- Interactive flashcards with question and answer sides
 - Download flashcards as PNG images
 - Modern, responsive UI with TailwindCSS
 
@@ -17,14 +18,17 @@ A React application that converts content from Word or PDF documents into quiz f
 - Vite
 - TailwindCSS
 - Mammoth.js (for Word document processing)
+- PDF.js (for PDF document processing)
 - html-to-image (for image generation)
 - file-saver (for downloading images)
+- Perplexity Sonar API (for AI-generated questions)
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 16+ and npm
+- Perplexity API key (for AI-generated questions)
 
 ### Installation
 
@@ -39,21 +43,55 @@ cd quiz-gen
 npm install
 ```
 
-3. Start the development server
+3. Set up environment variables for AI features
+```bash
+cp .env.example .env
+```
+Then edit the `.env` file and add your Perplexity API key:
+```
+VITE_PERPLEXITY_API_KEY=your_api_key_here
+```
+
+4. Start the development server
 ```bash
 npm run dev
 ```
 
-4. Open your browser and visit `http://localhost:5173`
+5. Open your browser and visit `http://localhost:5173`
 
 ## Usage
 
-1. Click on "Upload Document" and select a Word (.docx) file
-2. Specify the number of questions to generate
-3. The app will process your document and generate quiz questions
-4. Navigate through the flashcards using the Previous/Next buttons
-5. Click on a card to flip between question and answer
-6. Click "Download as Image" to save the current card as a PNG file
+1. Click on "Upload Document" and select a Word (.docx) or PDF file
+2. Choose the number of questions to generate (only applies for basic generation)
+3. Toggle "Use AI to generate better multiple-choice questions" if you have set up an API key
+4. Upload your document and wait for the questions to be generated
+5. Navigate through the flashcards using the Previous/Next buttons
+6. Click on a card to flip between question and multiple-choice options
+7. Click "Download as Image" to save the current card as a PNG file
+
+## AI Question Generation
+
+When the AI option is enabled, the application will:
+1. Extract text from your document
+2. Send the content to Perplexity Sonar API
+3. Generate structured multiple-choice questions
+4. Format the questions as interactive flashcards
+
+The front of each card shows the question, and the back shows the multiple-choice options.
+
+## Building for Production
+
+```bash
+npm run build
+```
+
+The build files will be output to the `dist` directory.
+
+## Troubleshooting
+
+- **API Key Issues**: Make sure your Perplexity API key is correctly set in the `.env` file
+- **Document Processing**: For large documents, processing may take a few moments
+- **PDF Support**: Complex PDFs with heavy formatting may not parse perfectly
 
 ## Building for Production
 

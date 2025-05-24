@@ -84,11 +84,67 @@ export const parsePdfDocument = async (file: File): Promise<string> => {
   });
 };
 
+// Function to extract options from the question content
+const extractOptionsFromContent = (
+  content: string
+): { question: string; options: string } => {
+  const mainQuestion = content.trim();
+
+  // Look for multiple-choice options like "A) Option" or "A. Option"
+  const letterOptionsPattern = /\n\s*[A-D][).]\s.+(\n\s*[A-D][).]\s.+)*/;
+  const letterMatch = letterOptionsPattern.exec(mainQuestion);
+
+  if (letterMatch) {
+    const optionsStartIndex = mainQuestion.indexOf(letterMatch[0]);
+    if (optionsStartIndex > 0) {
+      return {
+        question: mainQuestion.substring(0, optionsStartIndex).trim(),
+        options: letterMatch[0].trim(),
+      };
+    }
+  }
+
+  // Try numbered options like "1) Option" or "1. Option"
+  const numberedOptionsPattern = /\n\s*[1-4][).]\s.+(\n\s*[1-4][).]\s.+)*/;
+  const numberedMatch = numberedOptionsPattern.exec(mainQuestion);
+
+  if (numberedMatch) {
+    const optionsStartIndex = mainQuestion.indexOf(numberedMatch[0]);
+    if (optionsStartIndex > 0) {
+      return {
+        question: mainQuestion.substring(0, optionsStartIndex).trim(),
+        options: numberedMatch[0].trim(),
+      };
+    }
+  }
+
+  // If no options were found, look for question mark as separator
+  const questionMarkIndex = mainQuestion.indexOf("?");
+  if (questionMarkIndex > 0) {
+    return {
+      question: mainQuestion.substring(0, questionMarkIndex + 1).trim(),
+      options: mainQuestion.substring(questionMarkIndex + 1).trim(),
+    };
+  }
+
+  // Default: keep entire content as question, no options
+  return {
+    question: mainQuestion,
+    options: "",
+  };
+};
+
 // Function to generate quiz questions using Perplexity Sonar API
-export const generateQuizWithPerplexity = async (file: File): Promise<void> => {
+export const generateQuizWithPerplexity = async (
+  text: string
+): Promise<QuizQuestion[]> => {
   try {
-    // First parse the PDF to get text content
-    const text = await parsePdfDocument(file);
+    if (!PERPLEXITY_CONFIG.API_KEY) {
+      console.warn(
+        "Perplexity API key not set. Using fallback question generation."
+      );
+      return generateQuizQuestions(text);
+    }
 
     const response = await fetch(
       `${PERPLEXITY_CONFIG.BASE_URL}/chat/completions`,
@@ -107,7 +163,10 @@ export const generateQuizWithPerplexity = async (file: File): Promise<void> => {
             },
             {
               role: "user",
-              content: `Generate a quiz based on this content: ${text}`,
+              content: `Generate a quiz based on this content: ${text.substring(
+                0,
+                4000
+              )}`, // Limit text to 4000 chars to stay within token limits
             },
           ],
         }),
@@ -119,10 +178,41 @@ export const generateQuizWithPerplexity = async (file: File): Promise<void> => {
     }
 
     const data = await response.json();
-    console.log("Generated Quiz:", data.choices[0].message.content);
+    const aiContent = data.choices[0].message.content;
+
+    console.log("AI response:", aiContent); // For debugging
+
+    // Process the API response to extract the question and options
+    const questionData = extractOptionsFromContent(aiContent);
+
+    // Clean up the question text
+    let questionText = questionData.question.replace(/^Q\.?\s*/, ""); // Remove "Q." prefix
+    questionText = questionText.replace(/^Question:?\s*/i, ""); // Remove "Question:" prefix
+    questionText = questionText.replace(/^\d+\.\s*/i, ""); // Remove "1. " numbering prefix
+
+    // Create a single question object
+    const questions: QuizQuestion[] = [
+      {
+        id: uuidv4(),
+        question: questionText,
+        answer: questionData.options || "No answer provided",
+      },
+    ];
+
+    // If we didn't parse any valid questions, create a fallback question
+    // if (questions.length === 0) {
+    //   questions.push({
+    //     id: uuidv4(),
+    //     question: aiContent,
+    //     answer: "No specific options provided",
+    //   });
+    // }
+
+    return questions;
   } catch (error) {
-    console.error("Error generating quiz:", error);
-    throw error;
+    console.error("Error generating quiz with Perplexity:", error);
+    console.warn("Using fallback question generation due to API error.");
+    return generateQuizQuestions(text);
   }
 };
 

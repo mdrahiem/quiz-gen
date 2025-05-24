@@ -15,6 +15,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [numQuestions, setNumQuestions] = useState(10);
+  const [useAI, setUseAI] = useState(true);
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -52,7 +53,25 @@ const FileUploader: React.FC<FileUploaderProps> = ({
         return;
       }
 
-      const questions = generateQuizQuestions(text, numQuestions);
+      let questions: QuizQuestion[];
+
+      if (useAI) {
+        try {
+          const { generateQuizWithPerplexity } = await import(
+            "../utils/documentParser"
+          );
+          questions = await generateQuizWithPerplexity(text);
+        } catch (aiError) {
+          console.warn(
+            "Error using AI to generate questions, falling back to basic generator:",
+            aiError
+          );
+          questions = generateQuizQuestions(text, numQuestions);
+        }
+      } else {
+        questions = generateQuizQuestions(text, numQuestions);
+      }
+
       onQuestionsGenerated(questions);
     } catch (err) {
       setError(
@@ -86,6 +105,44 @@ const FileUploader: React.FC<FileUploaderProps> = ({
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
         />
       </div>
+
+      <div className="mb-4 flex items-center">
+        <input
+          id="use-ai"
+          type="checkbox"
+          checked={useAI}
+          onChange={(e) => setUseAI(e.target.checked)}
+          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+        />
+        <label
+          htmlFor="use-ai"
+          className="ml-2 block text-sm font-medium text-gray-700"
+        >
+          Use AI to generate a better multiple-choice question
+        </label>
+      </div>
+
+      {useAI && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+          <p className="flex items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            AI-powered question requires a Perplexity API key in your .env file
+          </p>
+        </div>
+      )}
 
       <div className="mt-4">
         <label
